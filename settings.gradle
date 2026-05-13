@@ -1,10 +1,10 @@
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.10.0'
 }
-rootProject.name = 'eshop'
+rootProject.name = 'core-banking'
 
 include 'common'
-include 'order-service'
-include 'payment-service'
-include 'inventory-service'
+include 'transfer-service'
+include 'account-service'
+include 'ledger-service'
 include 'notification-service'
