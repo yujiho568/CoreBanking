@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: notification-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 8084
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    com.corebanking: DEBUG
+    org.springframework.kafka: INFO

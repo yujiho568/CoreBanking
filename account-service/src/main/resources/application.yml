@@ -1,9 +1,9 @@
 spring:
   application:
-    name: transfer-service
+    name: account-service
 
   datasource:
-    url: jdbc:h2:mem:transferdb;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:accountdb;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -12,9 +12,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: embedded
 
   kafka:
     bootstrap-servers: localhost:9092
@@ -25,13 +27,9 @@ spring:
       path: /h2-console
 
 server:
-  port: 8081
+  port: 8082
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
   tracing:
     sampling:
       probability: 1.0
