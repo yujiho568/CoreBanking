@@ -1,9 +1,12 @@
 package com.corebanking;
 
+import com.corebanking.account.application.AccountLockProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
+@EnableConfigurationProperties(AccountLockProperties.class)
 public class CoreBankingApplication {
 
     public static void main(String[] args) {

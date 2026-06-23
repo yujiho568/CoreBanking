@@ -40,3 +40,7 @@ logging:
   level:
     com.corebanking: DEBUG
     org.hibernate.SQL: DEBUG
+
+core-banking:
+  account:
+    lock-mode: optimistic
