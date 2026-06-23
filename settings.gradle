@@ -1,10 +1,15 @@
-plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.10.0'
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
-rootProject.name = 'core-banking'
 
-include 'common'
-include 'transfer-service'
-include 'account-service'
-include 'ledger-service'
-include 'notification-service'
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'core-banking'
