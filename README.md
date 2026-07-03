@@ -20,35 +20,41 @@ Kafka, Saga compensation, distributed databases, Zookeeper, and Zipkin are inten
 
 ```text
 com.corebanking
-├── CoreBankingApplication.java
-├── common
-│   ├── api
-│   └── event
-├── account
-│   ├── api
-│   ├── application
-│   ├── domain
-│   └── infrastructure
-├── transfer
-│   ├── api
-│   ├── application
-│   ├── domain
-│   └── infrastructure
-├── ledger
-│   ├── application
-│   ├── domain
-│   └── infrastructure
-└── notification
-    └── application
+|-- CoreBankingApplication.java
+|-- common
+|   |-- dto
+|   |-- event
+|   `-- exception
+|-- account
+|   |-- controller
+|   |-- dto
+|   |-- entity
+|   |-- exception
+|   |-- repository
+|   `-- service
+|-- transfer
+|   |-- controller
+|   |-- dto
+|   |-- entity
+|   |-- exception
+|   |-- repository
+|   `-- service
+|-- ledger
+|   |-- entity
+|   |-- repository
+|   `-- service
+`-- notification
+    `-- service
 ```
 
-Module rules:
+MVC package rules:
 
-- Controllers live in `api`.
-- Transaction use cases live in `application`.
-- Entities and domain rules live in `domain`.
-- Spring Data repositories live in `infrastructure`.
-- Cross-module calls should go through `application` interfaces.
+- HTTP endpoints live in `controller`.
+- Request/response records and service commands live in `dto`.
+- Transaction use cases live in `service`.
+- JPA models and enums live in `entity`.
+- Spring Data repositories live in `repository`.
+- Business exceptions live in `exception`.
 - Post-commit notifications use Spring application events.
 
 ## Transfer Flow
@@ -93,6 +99,14 @@ Read an account:
 GET /api/accounts/{accountId}
 ```
 
+Browser test page:
+
+```text
+http://localhost:8080
+```
+
+The page can refresh seeded account balances, create a new idempotency key, and submit a transfer request.
+
 Seed accounts:
 
 ```text
@@ -116,6 +130,14 @@ docker compose up -d mysql
 SPRING_PROFILES_ACTIVE=mysql ./gradlew bootRun
 ```
 
+On Windows PowerShell:
+
+```powershell
+docker compose up -d mysql
+$env:SPRING_PROFILES_ACTIVE = "mysql"
+.\gradlew.bat bootRun
+```
+
 Run tests:
 
 ```bash
@@ -129,6 +151,12 @@ docker compose up -d
 ```
 
 It starts MySQL and Redis. Phase A defaults to H2 for fast local iteration.
+
+MySQL local note:
+
+- The app expects the Docker MySQL instance to own host port `3306`.
+- If an old local MySQL service already uses `3306`, stop that service first, then start Docker MySQL again.
+- If authentication errors mention an old MySQL client/plugin, verify that the app is really connecting to the Docker MySQL container.
 
 ## Next Phases
 
