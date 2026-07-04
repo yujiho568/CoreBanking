@@ -5,17 +5,17 @@ import com.corebanking.ledger.repository.LedgerEntryRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
-public class LedgerOperationsImpl implements LedgerOperations {
+public class LedgerWriteService {
 
     private final LedgerEntryRepository ledgerEntryRepository;
 
-    public LedgerOperationsImpl(LedgerEntryRepository ledgerEntryRepository) {
+    public LedgerWriteService(LedgerEntryRepository ledgerEntryRepository) {
         this.ledgerEntryRepository = ledgerEntryRepository;
     }
 
-    @Override
     public void record(
             String fromAccountId,
             String toAccountId,
@@ -24,7 +24,9 @@ public class LedgerOperationsImpl implements LedgerOperations {
             BigDecimal fromBalanceAfter,
             BigDecimal toBalanceAfter
     ) {
-        ledgerEntryRepository.save(LedgerEntry.debit(transferId, fromAccountId, amount, fromBalanceAfter));
-        ledgerEntryRepository.save(LedgerEntry.credit(transferId, toAccountId, amount, toBalanceAfter));
+        ledgerEntryRepository.saveAll(List.of(
+                LedgerEntry.debit(transferId, fromAccountId, amount, fromBalanceAfter),
+                LedgerEntry.credit(transferId, toAccountId, amount, toBalanceAfter)
+        ));
     }
 }

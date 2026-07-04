@@ -1,6 +1,7 @@
 package com.corebanking.ledger.repository;
 
 import com.corebanking.ledger.entity.LedgerEntry;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -8,4 +9,6 @@ import java.util.List;
 public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, String> {
 
     List<LedgerEntry> findByTransferIdOrderByCreatedAtAsc(String transferId);
+
+    List<LedgerEntry> findByAccountIdOrderByCreatedAtDesc(String accountId, Pageable pageable);
 }

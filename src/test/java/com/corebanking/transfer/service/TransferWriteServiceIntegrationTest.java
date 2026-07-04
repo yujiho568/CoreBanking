@@ -14,19 +14,19 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-class TransferServiceIntegrationTest {
+class TransferWriteServiceIntegrationTest {
 
-    private final TransferService transferService;
+    private final TransferWriteService transferWriteService;
     private final AccountRepository accountRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
 
     @Autowired
-    TransferServiceIntegrationTest(
-            TransferService transferService,
+    TransferWriteServiceIntegrationTest(
+            TransferWriteService transferWriteService,
             AccountRepository accountRepository,
             LedgerEntryRepository ledgerEntryRepository
     ) {
-        this.transferService = transferService;
+        this.transferWriteService = transferWriteService;
         this.accountRepository = accountRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
     }
@@ -44,8 +44,8 @@ class TransferServiceIntegrationTest {
                 amount
         );
 
-        var first = transferService.execute(request);
-        var second = transferService.execute(request);
+        var first = transferWriteService.execute(request);
+        var second = transferWriteService.execute(request);
 
         assertThat(second.getTransferId()).isEqualTo(first.getTransferId());
         assertThat(first.getStatus()).isEqualTo(TransferStatus.COMPLETED);
