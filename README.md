@@ -117,25 +117,18 @@ ACC-003  250000.00
 
 ## Running
 
-The default profile uses H2 in-memory DB:
+The application uses MySQL by default. Run the full local stack with Docker Compose:
 
 ```bash
-./gradlew bootRun
-```
-
-Run against the single MySQL instance from Docker Compose:
-
-```bash
-docker compose up -d mysql
-SPRING_PROFILES_ACTIVE=mysql ./gradlew bootRun
+cp .env.example .env
+docker compose up app
 ```
 
 On Windows PowerShell:
 
 ```powershell
-docker compose up -d mysql
-$env:SPRING_PROFILES_ACTIVE = "mysql"
-.\gradlew.bat bootRun
+Copy-Item .env.example .env
+docker compose up app
 ```
 
 Run tests:
@@ -150,7 +143,7 @@ Docker Compose keeps only the infrastructure intended for later phases:
 docker compose up -d
 ```
 
-It starts MySQL and Redis. Phase A defaults to H2 for fast local iteration.
+It starts MySQL and Redis. The application connects to MySQL on host port `3306`.
 
 MySQL local note:
 
@@ -158,8 +151,94 @@ MySQL local note:
 - If an old local MySQL service already uses `3306`, stop that service first, then start Docker MySQL again.
 - If authentication errors mention an old MySQL client/plugin, verify that the app is really connecting to the Docker MySQL container.
 
+## Phase B Seed Data
+
+Phase B seed data is loaded through a Spring Batch job. Batch execution is disabled for the normal `app` service and enabled only for the `seed` service:
+
+```powershell
+docker compose run --rm seed
+```
+
+After it finishes, run the app normally for API testing:
+
+```powershell
+docker compose up app
+```
+
+Default seed size:
+
+```text
+accounts: 1,000
+transfers: 10,000
+ledger_entries: 20,000
+```
+
+The generated rows use deterministic IDs, so restarting with the seed enabled does not duplicate data:
+
+```text
+account_id: PHASEB-ACC-000001
+transfer_id: PHASEB-TR-00000001
+idempotency_key: phase-b-key-00000001
+```
+
+To change the data size:
+
+```env
+CORE_BANKING_SEED_ACCOUNT_COUNT=1000
+CORE_BANKING_SEED_TRANSFER_COUNT=100000
+```
+
+## Phase B Lock Benchmark
+
+The transfer benchmark uses JMeter to send concurrent hot-account transfer requests to:
+
+```http
+POST /api/transfers
+```
+
+The lock mode is controlled by `.env`:
+
+```env
+CORE_BANKING_ACCOUNT_LOCK_MODE=pessimistic
+```
+
+Set it to `optimistic` or `pessimistic`, rebuild/restart the app, then run the same JMeter plan:
+
+```powershell
+docker compose build app
+docker compose up -d app
+```
+
+JMeter plan:
+
+```text
+jmeter/corebanking-transfer-lock-benchmark.jmx
+```
+
+Measured hot-account results:
+
+| Lock mode | API | Samples | Average | Min | Max | Std. Dev. | Error % | Throughput |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| optimistic | POST /api/transfers | 9,018 | 180 ms | 20 ms | 1,484 ms | 125 ms | 0.88% | 150/sec |
+| pessimistic | POST /api/transfers | 2,256 | 743 ms | 183 ms | 2,813 ms | 288 ms | 0.00% | 37/sec |
+
+Observed behavior:
+
+- Optimistic locking allowed higher throughput, but concurrent updates to the same account caused version conflicts.
+- Pessimistic locking removed optimistic lock conflicts by using row-level lock waiting, but response time increased and throughput dropped.
+- The main bottleneck in the hot-account scenario is contention on the same account row.
+
+The optimistic conflict response looked like:
+
+```json
+{
+  "code": "OPTIMISTIC_LOCK_CONFLICT",
+  "message": "Concurrent update conflict. Retry the request."
+}
+```
+
 ## Next Phases
 
-- Phase B: MySQL schema, indexes, EXPLAIN, N+1 checks, isolation/lock tests, HikariCP tuning, k6 load tests
+- Phase B: MySQL schema, indexes, EXPLAIN, N+1 checks, isolation/lock tests, HikariCP tuning, JMeter load tests
 - Phase C: Redis cache and distributed lock experiments
 - Phase D: split only modules proven by load testing to be bottlenecks

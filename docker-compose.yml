@@ -13,11 +13,45 @@ services:
       - --collation-server=utf8mb4_unicode_ci
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   redis:
     image: redis:7.2-alpine
     ports:
       - "6379:6379"
+
+  app:
+    build: .
+    image: corebanking-app:local
+    env_file:
+      - .env
+    environment:
+      SPRING_BATCH_JOB_ENABLED: "false"
+      SPRING_MAIN_WEB_APPLICATION_TYPE: servlet
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  seed:
+    build: .
+    image: corebanking-app:local
+    profiles:
+      - seed
+    env_file:
+      - .env
+    environment:
+      SPRING_BATCH_JOB_ENABLED: "true"
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   mysql-data:

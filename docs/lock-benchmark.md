@@ -2,66 +2,100 @@
 
 This benchmark compares the same transfer endpoint under two account locking strategies:
 
-- `core-banking.account.lock-mode=optimistic`
-- `core-banking.account.lock-mode=pessimistic`
+- `CORE_BANKING_ACCOUNT_LOCK_MODE=optimistic`
+- `CORE_BANKING_ACCOUNT_LOCK_MODE=pessimistic`
 
-Use MySQL for meaningful lock behavior. H2 is useful for smoke tests, but it is not a realistic lock benchmark target.
+The benchmark target is MySQL. The application now uses MySQL by default.
 
-## Start MySQL
+## Run The Stack
 
-```bash
-docker compose up -d mysql
+Create a local environment file if it does not exist:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-Start the app in optimistic mode:
+Start or restart the app:
 
-```bash
-set SPRING_PROFILES_ACTIVE=mysql
-set CORE_BANKING_ACCOUNT_LOCK_MODE=optimistic
-.\gradlew.bat bootRun
+```powershell
+docker compose build app
+docker compose up -d app
 ```
 
-Run JMeter in another terminal:
+Seed benchmark data:
 
-```bash
-mkdir build\jmeter
-jmeter -n -t jmeter/corebanking-transfer-lock-benchmark.jmx -l build/jmeter/optimistic.jtl -e -o build/jmeter/optimistic-report
+```powershell
+docker compose run --rm seed
 ```
 
-You can override load settings:
+## Switch Lock Mode
 
-```bash
-jmeter -n -t jmeter/corebanking-transfer-lock-benchmark.jmx -Jthreads=100 -JrampUp=20 -Jduration=120 -l build/jmeter/optimistic-100t.jtl
+Edit `.env`:
+
+```env
+CORE_BANKING_ACCOUNT_LOCK_MODE=optimistic
 ```
 
-Stop the app, reset the database, then start in pessimistic mode:
+or:
 
-```bash
-docker compose down -v
-docker compose up -d mysql
-set SPRING_PROFILES_ACTIVE=mysql
-set CORE_BANKING_ACCOUNT_LOCK_MODE=pessimistic
-.\gradlew.bat bootRun
+```env
+CORE_BANKING_ACCOUNT_LOCK_MODE=pessimistic
 ```
 
-Run the same JMeter plan:
+Then rebuild and restart:
 
-```bash
-jmeter -n -t jmeter/corebanking-transfer-lock-benchmark.jmx -l build/jmeter/pessimistic.jtl -e -o build/jmeter/pessimistic-report
+```powershell
+docker compose build app
+docker compose up -d app
 ```
+
+## Run JMeter
+
+JMeter plan:
+
+```text
+jmeter/corebanking-transfer-lock-benchmark.jmx
+```
+
+Recommended local JMeter home:
+
+```text
+C:\Users\jiho5\tools\apache-jmeter-5.6.3
+```
+
+CLI example:
+
+```powershell
+C:\Users\jiho5\tools\apache-jmeter-5.6.3\bin\jmeter.bat -n -t jmeter/corebanking-transfer-lock-benchmark.jmx -l build/jmeter/result.jtl
+```
+
+## Measured Hot-Account Results
+
+| Lock mode | API | Samples | Average | Min | Max | Std. Dev. | Error % | Throughput |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| optimistic | POST /api/transfers | 9,018 | 180 ms | 20 ms | 1,484 ms | 125 ms | 0.88% | 150/sec |
+| pessimistic | POST /api/transfers | 2,256 | 743 ms | 183 ms | 2,813 ms | 288 ms | 0.00% | 37/sec |
 
 ## What To Compare
 
-- Throughput: requests/sec
-- Average and p95 latency
 - Error rate
-- Database deadlocks or lock wait timeouts
+- Throughput
+- Average and p95 latency
+- Max latency
+- Database lock waits
 - Final account balances
 
-The test sends many concurrent transfers from `BENCH-FROM` to `BENCH-TO`. Each request uses a unique idempotency key.
+## Interpretation
 
-## Expected Shape
+Optimistic locking allowed higher throughput, but concurrent updates to the same account produced version conflicts:
 
-Optimistic locking may show higher throughput at low contention, but under a hot single-account workload it can produce more failed commits and retries if retry logic is added later.
+```json
+{
+  "code": "OPTIMISTIC_LOCK_CONFLICT",
+  "message": "Concurrent update conflict. Retry the request."
+}
+```
 
-Pessimistic locking should serialize updates for the hot account. It may have higher latency, but it should avoid optimistic update conflicts for the same row.
+Pessimistic locking serialized updates for the hot account row. It removed optimistic lock conflicts, but average latency increased and throughput dropped.
+
+The current hot-account bottleneck is contention on the same account row.

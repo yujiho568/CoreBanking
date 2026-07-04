@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,11 +33,15 @@ class TransferServiceIntegrationTest {
 
     @Test
     void executeTransferCompletesInSingleTransactionAndIsIdempotent() {
+        var beforeFrom = accountRepository.findById("ACC-001").orElseThrow();
+        var beforeTo = accountRepository.findById("ACC-002").orElseThrow();
+        BigDecimal amount = new BigDecimal("10000.00");
+
         CreateTransferRequest request = new CreateTransferRequest(
-                "idem-test-001",
+                "idem-test-" + UUID.randomUUID(),
                 "ACC-001",
                 "ACC-002",
-                new BigDecimal("10000.00")
+                amount
         );
 
         var first = transferService.execute(request);
@@ -48,8 +53,8 @@ class TransferServiceIntegrationTest {
 
         var from = accountRepository.findById("ACC-001").orElseThrow();
         var to = accountRepository.findById("ACC-002").orElseThrow();
-        assertThat(from.getBalance()).isEqualByComparingTo("990000.00");
+        assertThat(from.getBalance()).isEqualByComparingTo(beforeFrom.getBalance().subtract(amount));
         assertThat(from.getReservedBalance()).isEqualByComparingTo("0.00");
-        assertThat(to.getBalance()).isEqualByComparingTo("510000.00");
+        assertThat(to.getBalance()).isEqualByComparingTo(beforeTo.getBalance().add(amount));
     }
 }
