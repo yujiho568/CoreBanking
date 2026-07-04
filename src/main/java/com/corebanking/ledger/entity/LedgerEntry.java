@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -12,7 +13,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "ledger_entries")
+@Table(
+        name = "ledger_entries",
+        indexes = {
+                @Index(name = "idx_ledger_entries_account_created_at", columnList = "account_id, created_at DESC")
+        }
+)
 public class LedgerEntry {
 
     @Id

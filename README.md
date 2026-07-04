@@ -99,6 +99,12 @@ Read an account:
 GET /api/accounts/{accountId}
 ```
 
+Read recent ledger entries for an account:
+
+```http
+GET /api/accounts/{accountId}/ledger-entries?limit=50
+```
+
 Browser test page:
 
 ```text
@@ -188,6 +194,20 @@ CORE_BANKING_SEED_ACCOUNT_COUNT=1000
 CORE_BANKING_SEED_TRANSFER_COUNT=100000
 ```
 
+For larger index experiments, the seed can be increased to one million transfers:
+
+```env
+CORE_BANKING_SEED_TRANSFER_COUNT=1000000
+```
+
+That produces:
+
+```text
+accounts: 1,000
+transfers: 1,000,000
+ledger_entries: 2,000,000
+```
+
 ## Phase B Lock Benchmark
 
 The transfer benchmark uses JMeter to send concurrent hot-account transfer requests to:
@@ -236,6 +256,51 @@ The optimistic conflict response looked like:
   "message": "Concurrent update conflict. Retry the request."
 }
 ```
+
+## Phase B Ledger Read Benchmark
+
+The account ledger read benchmark measures the latest ledger entries for one seeded account:
+
+```http
+GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50
+```
+
+JMeter plan:
+
+```text
+jmeter/corebanking-read-transaction-benchmark.jmx
+```
+
+The query pattern is:
+
+```sql
+SELECT *
+FROM ledger_entries
+WHERE account_id = ?
+ORDER BY created_at DESC
+LIMIT 50;
+```
+
+The ledger table has a composite index for this access pattern:
+
+```sql
+CREATE INDEX idx_ledger_entries_account_created_at
+ON ledger_entries (account_id, created_at DESC);
+```
+
+Measured results with 2,000,000 ledger entries:
+
+| Index | API | Samples | Average | Min | Max | Std. Dev. | Error % | Throughput |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| none | GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50 | 1,650 | 194 ms | 7 ms | 3,710 ms | 471 ms | 0.00% | 0.366/sec |
+| `idx_ledger_entries_account_created_at` | GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50 | 1,500 | 52 ms | 7 ms | 337 ms | 58 ms | 0.00% | 0.340/sec |
+
+Observed behavior:
+
+- The composite index reduced average response time from 194 ms to 52 ms.
+- The max response time dropped from 3,710 ms to 337 ms.
+- The standard deviation dropped from 471 ms to 58 ms, so response times became more stable.
+- `EXPLAIN` changed to use `idx_ledger_entries_account_created_at` with `type=ref`, avoiding a full scan for the account ledger lookup.
 
 ## Next Phases
 
