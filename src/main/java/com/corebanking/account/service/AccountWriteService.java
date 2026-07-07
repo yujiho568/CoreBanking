@@ -1,10 +1,11 @@
 package com.corebanking.account.service;
 
-import com.corebanking.account.dto.AccountTransferResult;
 import com.corebanking.account.entity.Account;
 import com.corebanking.account.entity.AccountStatus;
 import com.corebanking.account.exception.AccountNotFoundException;
 import com.corebanking.account.exception.InsufficientBalanceException;
+import com.corebanking.account.port.AccountTransferPort;
+import com.corebanking.account.port.AccountTransferResult;
 import com.corebanking.account.repository.AccountRepository;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +13,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 @Service
-public class AccountWriteService {
+public class AccountWriteService implements AccountTransferPort {
 
     private final AccountRepository accountRepository;
     private final AccountLockProperties lockProperties;
@@ -22,6 +23,7 @@ public class AccountWriteService {
         this.lockProperties = lockProperties;
     }
 
+    @Override
     public void reserve(String accountId, BigDecimal amount) {
         Account account = getRequiredAccount(accountId);
         validateActive(account);
@@ -35,6 +37,7 @@ public class AccountWriteService {
         account.changeReservedBalance(account.getReservedBalance().add(amount));
     }
 
+    @Override
     public AccountTransferResult commitTransfer(String fromAccountId, String toAccountId, BigDecimal amount) {
         Account from = getRequiredAccount(fromAccountId);
         Account to = getRequiredAccount(toAccountId);

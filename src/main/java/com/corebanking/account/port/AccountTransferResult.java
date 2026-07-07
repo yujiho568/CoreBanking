@@ -1,4 +1,4 @@
-package com.corebanking.account.dto;
+package com.corebanking.account.port;
 
 import java.math.BigDecimal;
 

@@ -1,9 +1,9 @@
 package com.corebanking.transfer.service;
 
-import com.corebanking.account.dto.AccountTransferResult;
-import com.corebanking.account.service.AccountWriteService;
+import com.corebanking.account.port.AccountTransferPort;
+import com.corebanking.account.port.AccountTransferResult;
 import com.corebanking.common.event.TransferCompletedEvent;
-import com.corebanking.ledger.service.LedgerWriteService;
+import com.corebanking.ledger.port.LedgerRecordPort;
 import com.corebanking.transfer.dto.CreateTransferRequest;
 import com.corebanking.transfer.entity.Transfer;
 import com.corebanking.transfer.repository.TransferRepository;
@@ -17,19 +17,19 @@ import java.util.UUID;
 public class TransferWriteService {
 
     private final TransferRepository transferRepository;
-    private final AccountWriteService accountWriteService;
-    private final LedgerWriteService ledgerWriteService;
+    private final AccountTransferPort accountTransferPort;
+    private final LedgerRecordPort ledgerRecordPort;
     private final ApplicationEventPublisher eventPublisher;
 
     public TransferWriteService(
             TransferRepository transferRepository,
-            AccountWriteService accountWriteService,
-            LedgerWriteService ledgerWriteService,
+            AccountTransferPort accountTransferPort,
+            LedgerRecordPort ledgerRecordPort,
             ApplicationEventPublisher eventPublisher
     ) {
         this.transferRepository = transferRepository;
-        this.accountWriteService = accountWriteService;
-        this.ledgerWriteService = ledgerWriteService;
+        this.accountTransferPort = accountTransferPort;
+        this.ledgerRecordPort = ledgerRecordPort;
         this.eventPublisher = eventPublisher;
     }
 
@@ -50,13 +50,13 @@ public class TransferWriteService {
         transferRepository.save(transfer);
 
         transfer.markProcessing();
-        accountWriteService.reserve(request.fromAccountId(), request.amount());
-        AccountTransferResult balances = accountWriteService.commitTransfer(
+        accountTransferPort.reserve(request.fromAccountId(), request.amount());
+        AccountTransferResult balances = accountTransferPort.commitTransfer(
                 request.fromAccountId(),
                 request.toAccountId(),
                 request.amount()
         );
-        ledgerWriteService.record(
+        ledgerRecordPort.record(
                 request.fromAccountId(),
                 request.toAccountId(),
                 request.amount(),

@@ -1,6 +1,7 @@
 package com.corebanking.ledger.service;
 
 import com.corebanking.ledger.entity.LedgerEntry;
+import com.corebanking.ledger.port.LedgerRecordPort;
 import com.corebanking.ledger.repository.LedgerEntryRepository;
 import org.springframework.stereotype.Service;
 
@@ -8,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Service
-public class LedgerWriteService {
+public class LedgerWriteService implements LedgerRecordPort {
 
     private final LedgerEntryRepository ledgerEntryRepository;
 
@@ -16,6 +17,7 @@ public class LedgerWriteService {
         this.ledgerEntryRepository = ledgerEntryRepository;
     }
 
+    @Override
     public void record(
             String fromAccountId,
             String toAccountId,
