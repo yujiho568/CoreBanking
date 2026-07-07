@@ -41,3 +41,7 @@ out/
 .env
 jmeter.log
 .claude/
+
+### JMeter generated files ###
+jmeter/distributed-transfer-requests.csv
+jmeter/*.jtl

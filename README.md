@@ -1,22 +1,23 @@
 # CoreBanking
 
-CoreBanking is a modular monolith for a banking transfer domain. It replaces the archived Kafka-based MSA attempt with a single deployable Spring Boot application focused on measurable database behavior, transaction correctness, and simple module boundaries.
+CoreBanking은 계좌 이체 도메인을 다루는 모듈러 모놀리스 프로젝트입니다.
+기존 Kafka 기반 MSA 시도 대신, 하나의 Spring Boot 애플리케이션 안에서 데이터베이스 동작, 트랜잭션 정합성, 모듈 경계, 성능 병목을 측정하는 데 초점을 둡니다.
 
-## Phase A Scope
+## Phase A 범위
 
-- Single Spring Boot application
-- Package-based module boundaries
-- Account transfer happy path
-- Single `@Transactional` transfer flow
-- BigDecimal money handling
-- Account optimistic locking with `@Version`
-- Double-entry append-only ledger entries
-- Idempotency key for transfer creation
-- In-process notification event after commit
+- 단일 Spring Boot 애플리케이션
+- 패키지 기반 모듈 경계
+- 계좌 이체 happy path
+- 단일 `@Transactional` 이체 흐름
+- `BigDecimal` 기반 금액 처리
+- `@Version` 기반 계좌 optimistic locking
+- 복식부기 방식의 append-only 원장 기록
+- 이체 생성 idempotency key
+- 커밋 이후 실행되는 인프로세스 알림 이벤트
 
-Kafka, Saga compensation, distributed databases, Zookeeper, and Zipkin are intentionally removed.
+Kafka, Saga 보상 트랜잭션, 분산 데이터베이스, Zookeeper, Zipkin은 의도적으로 제거했습니다.
 
-## Structure
+## 구조
 
 ```text
 com.corebanking
@@ -47,33 +48,33 @@ com.corebanking
     `-- service
 ```
 
-MVC package rules:
+MVC 패키지 규칙:
 
-- HTTP endpoints live in `controller`.
-- Request/response records and service commands live in `dto`.
-- Transaction use cases live in `service`.
-- JPA models and enums live in `entity`.
-- Spring Data repositories live in `repository`.
-- Business exceptions live in `exception`.
-- Post-commit notifications use Spring application events.
+- HTTP 엔드포인트는 `controller`에 둡니다.
+- 요청/응답 record와 서비스 command는 `dto`에 둡니다.
+- 트랜잭션 유스케이스는 `service`에 둡니다.
+- JPA 모델과 enum은 `entity`에 둡니다.
+- Spring Data repository는 `repository`에 둡니다.
+- 비즈니스 예외는 `exception`에 둡니다.
+- 커밋 이후 알림은 Spring application event로 처리합니다.
 
-## Transfer Flow
+## 이체 흐름
 
-`TransferService.execute()` runs the Phase A happy path in one database transaction:
+`TransferWriteService.execute()`는 Phase A 기준 happy path를 하나의 DB 트랜잭션으로 처리합니다.
 
-1. Check `idempotencyKey`.
-2. Create a `Transfer`.
-3. Reserve source account balance.
-4. Commit source debit and destination credit.
-5. Record two ledger entries: `DEBIT` and `CREDIT`.
-6. Mark transfer as `COMPLETED`.
-7. Publish `TransferCompletedEvent`; notification listener handles it after commit.
+1. `idempotencyKey` 중복 여부를 확인합니다.
+2. `Transfer`를 생성합니다.
+3. 출금 계좌의 금액을 예약합니다.
+4. 출금 계좌 차감과 입금 계좌 증가를 확정합니다.
+5. `DEBIT`, `CREDIT` 원장 기록 2건을 저장합니다.
+6. 이체 상태를 `COMPLETED`로 변경합니다.
+7. `TransferCompletedEvent`를 발행하고, 알림 리스너는 커밋 이후 처리합니다.
 
-If any step fails, the database transaction rolls back. There is no Saga compensation path in Phase A.
+중간 단계에서 실패하면 DB 트랜잭션은 롤백됩니다. Phase A에는 Saga 보상 경로가 없습니다.
 
 ## API
 
-Create a transfer:
+이체 생성:
 
 ```http
 POST /api/transfers
@@ -87,33 +88,33 @@ Content-Type: application/json
 }
 ```
 
-Read a transfer:
+이체 조회:
 
 ```http
 GET /api/transfers/{transferId}
 ```
 
-Read an account:
+계좌 조회:
 
 ```http
 GET /api/accounts/{accountId}
 ```
 
-Read recent ledger entries for an account:
+계좌별 최근 원장 조회:
 
 ```http
 GET /api/accounts/{accountId}/ledger-entries?limit=50
 ```
 
-Browser test page:
+브라우저 테스트 페이지:
 
 ```text
 http://localhost:8080
 ```
 
-The page can refresh seeded account balances, create a new idempotency key, and submit a transfer request.
+페이지에서 시드 계좌 잔액 조회, idempotency key 생성, 이체 요청을 테스트할 수 있습니다.
 
-Seed accounts:
+기본 시드 계좌:
 
 ```text
 ACC-001 1000000.00
@@ -121,57 +122,57 @@ ACC-002  500000.00
 ACC-003  250000.00
 ```
 
-## Running
+## 실행
 
-The application uses MySQL by default. Run the full local stack with Docker Compose:
+애플리케이션은 기본적으로 MySQL을 사용합니다. Docker Compose로 로컬 스택을 실행합니다.
 
 ```bash
 cp .env.example .env
 docker compose up app
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
 docker compose up app
 ```
 
-Run tests:
+테스트 실행:
 
 ```bash
 ./gradlew test
 ```
 
-Docker Compose keeps only the infrastructure intended for later phases:
+전체 인프라 실행:
 
 ```bash
 docker compose up -d
 ```
 
-It starts MySQL and Redis. The application connects to MySQL on host port `3306`.
+Docker Compose는 MySQL과 Redis를 실행합니다. 애플리케이션은 기본적으로 호스트 `3306` 포트의 MySQL에 연결합니다.
 
-MySQL local note:
+MySQL 로컬 주의사항:
 
-- The app expects the Docker MySQL instance to own host port `3306`.
-- If an old local MySQL service already uses `3306`, stop that service first, then start Docker MySQL again.
-- If authentication errors mention an old MySQL client/plugin, verify that the app is really connecting to the Docker MySQL container.
+- 앱은 Docker MySQL 인스턴스가 호스트 `3306` 포트를 사용한다고 가정합니다.
+- 기존 로컬 MySQL 서비스가 `3306`을 사용 중이면 먼저 중지한 뒤 Docker MySQL을 실행합니다.
+- 인증 오류가 오래된 MySQL client/plugin을 언급하면, 앱이 실제로 Docker MySQL에 연결 중인지 확인합니다.
 
-## Phase B Seed Data
+## Phase B 시드 데이터
 
-Phase B seed data is loaded through a Spring Batch job. Batch execution is disabled for the normal `app` service and enabled only for the `seed` service:
+Phase B 시드 데이터는 Spring Batch job으로 적재합니다. 일반 `app` 서비스에서는 Batch 실행을 끄고, `seed` 서비스에서만 활성화합니다.
 
 ```powershell
 docker compose run --rm seed
 ```
 
-After it finishes, run the app normally for API testing:
+시드 적재가 끝나면 앱을 정상 실행합니다.
 
 ```powershell
 docker compose up app
 ```
 
-Default seed size:
+기본 시드 크기:
 
 ```text
 accounts: 1,000
@@ -179,7 +180,7 @@ transfers: 10,000
 ledger_entries: 20,000
 ```
 
-The generated rows use deterministic IDs, so restarting with the seed enabled does not duplicate data:
+생성되는 ID는 결정적이므로 seed job을 다시 실행해도 중복 저장되지 않습니다.
 
 ```text
 account_id: PHASEB-ACC-000001
@@ -187,20 +188,20 @@ transfer_id: PHASEB-TR-00000001
 idempotency_key: phase-b-key-00000001
 ```
 
-To change the data size:
+데이터 크기 변경:
 
 ```env
 CORE_BANKING_SEED_ACCOUNT_COUNT=1000
 CORE_BANKING_SEED_TRANSFER_COUNT=100000
 ```
 
-For larger index experiments, the seed can be increased to one million transfers:
+큰 인덱스 실험이 필요하면 이체 데이터를 100만 건까지 늘릴 수 있습니다.
 
 ```env
 CORE_BANKING_SEED_TRANSFER_COUNT=1000000
 ```
 
-That produces:
+이 설정은 다음 데이터를 생성합니다.
 
 ```text
 accounts: 1,000
@@ -208,47 +209,47 @@ transfers: 1,000,000
 ledger_entries: 2,000,000
 ```
 
-## Phase B Lock Benchmark
+## Phase B 락 벤치마크
 
-The transfer benchmark uses JMeter to send concurrent hot-account transfer requests to:
+이체 벤치마크는 JMeter로 hot account에 동시 이체 요청을 보냅니다.
 
 ```http
 POST /api/transfers
 ```
 
-The lock mode is controlled by `.env`:
+락 모드는 `.env`에서 제어합니다.
 
 ```env
 CORE_BANKING_ACCOUNT_LOCK_MODE=pessimistic
 ```
 
-Set it to `optimistic` or `pessimistic`, rebuild/restart the app, then run the same JMeter plan:
+`optimistic` 또는 `pessimistic`으로 설정한 뒤 앱을 다시 빌드/실행하고 같은 JMeter 플랜을 실행합니다.
 
 ```powershell
 docker compose build app
 docker compose up -d app
 ```
 
-JMeter plan:
+JMeter 플랜:
 
 ```text
 jmeter/corebanking-transfer-lock-benchmark.jmx
 ```
 
-Measured hot-account results:
+측정된 hot account 결과:
 
 | Lock mode | API | Samples | Average | Min | Max | Std. Dev. | Error % | Throughput |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | optimistic | POST /api/transfers | 9,018 | 180 ms | 20 ms | 1,484 ms | 125 ms | 0.88% | 150/sec |
 | pessimistic | POST /api/transfers | 2,256 | 743 ms | 183 ms | 2,813 ms | 288 ms | 0.00% | 37/sec |
 
-Observed behavior:
+관찰 결과:
 
-- Optimistic locking allowed higher throughput, but concurrent updates to the same account caused version conflicts.
-- Pessimistic locking removed optimistic lock conflicts by using row-level lock waiting, but response time increased and throughput dropped.
-- The main bottleneck in the hot-account scenario is contention on the same account row.
+- Optimistic locking은 처리량이 높았지만, 같은 계좌에 대한 동시 업데이트에서 version conflict가 발생했습니다.
+- Pessimistic locking은 optimistic lock conflict를 제거했지만 row-level lock 대기 때문에 응답 시간이 증가하고 처리량이 감소했습니다.
+- hot account 시나리오의 핵심 병목은 같은 계좌 row에 대한 경합입니다.
 
-The optimistic conflict response looked like:
+Optimistic conflict 응답 예시:
 
 ```json
 {
@@ -257,21 +258,21 @@ The optimistic conflict response looked like:
 }
 ```
 
-## Phase B Ledger Read Benchmark
+## Phase B 원장 조회 벤치마크
 
-The account ledger read benchmark measures the latest ledger entries for one seeded account:
+계좌 원장 조회 벤치마크는 하나의 시드 계좌에 대해 최신 원장 기록을 조회합니다.
 
 ```http
 GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50
 ```
 
-JMeter plan:
+JMeter 플랜:
 
 ```text
 jmeter/corebanking-read-transaction-benchmark.jmx
 ```
 
-The query pattern is:
+쿼리 패턴:
 
 ```sql
 SELECT *
@@ -281,29 +282,92 @@ ORDER BY created_at DESC
 LIMIT 50;
 ```
 
-The ledger table has a composite index for this access pattern:
+이 접근 패턴을 위해 원장 테이블에는 복합 인덱스가 있습니다.
 
 ```sql
 CREATE INDEX idx_ledger_entries_account_created_at
 ON ledger_entries (account_id, created_at DESC);
 ```
 
-Measured results with 2,000,000 ledger entries:
+2,000,000건 원장 데이터 기준 측정 결과:
 
 | Index | API | Samples | Average | Min | Max | Std. Dev. | Error % | Throughput |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | none | GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50 | 1,650 | 194 ms | 7 ms | 3,710 ms | 471 ms | 0.00% | 0.366/sec |
 | `idx_ledger_entries_account_created_at` | GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50 | 1,500 | 52 ms | 7 ms | 337 ms | 58 ms | 0.00% | 0.340/sec |
 
-Observed behavior:
+관찰 결과:
 
-- The composite index reduced average response time from 194 ms to 52 ms.
-- The max response time dropped from 3,710 ms to 337 ms.
-- The standard deviation dropped from 471 ms to 58 ms, so response times became more stable.
-- `EXPLAIN` changed to use `idx_ledger_entries_account_created_at` with `type=ref`, avoiding a full scan for the account ledger lookup.
+- 복합 인덱스 적용 후 평균 응답 시간이 194 ms에서 52 ms로 감소했습니다.
+- 최대 응답 시간이 3,710 ms에서 337 ms로 감소했습니다.
+- 표준편차가 471 ms에서 58 ms로 감소해 응답 시간이 더 안정적이었습니다.
+- `EXPLAIN` 결과는 `idx_ledger_entries_account_created_at`을 사용하도록 바뀌었고, account ledger 조회에서 full scan을 피했습니다.
 
-## Next Phases
+## Phase C 분산 이체 트래픽 벤치마크
 
-- Phase B: MySQL schema, indexes, EXPLAIN, N+1 checks, isolation/lock tests, HikariCP tuning, JMeter load tests
-- Phase C: Redis cache and distributed lock experiments
-- Phase D: split only modules proven by load testing to be bottlenecks
+Phase C에서는 Redis cache와 distributed lock 실험을 준비합니다. 이때 hot account만 때리는 부하와 별도로, 여러 계좌 쌍에 분산된 이체 트래픽이 필요합니다.
+
+생성된 CSV 위치:
+
+```text
+jmeter/distributed-transfer-requests.csv
+```
+
+절대 경로:
+
+```text
+C:\my\CoreBanking\jmeter\distributed-transfer-requests.csv
+```
+
+CSV 컬럼:
+
+```text
+fromAccountId,toAccountId,amount
+```
+
+CSV 생성:
+
+```powershell
+.\jmeter\generate-distributed-transfer-csv.ps1 `
+  -AccountCount 1000 `
+  -Rows 50000 `
+  -OutputPath jmeter/distributed-transfer-requests.csv
+```
+
+JMeter 플랜:
+
+```text
+jmeter/corebanking-distributed-transfer-benchmark.jmx
+```
+
+JMeter 실행:
+
+```powershell
+jmeter -n `
+  -t jmeter/corebanking-distributed-transfer-benchmark.jmx `
+  -l jmeter/distributed-transfer-results.jtl `
+  -Jthreads=50 `
+  -JrampUp=30 `
+  -Jloops=1000 `
+  -JcsvFile=jmeter/distributed-transfer-requests.csv
+```
+
+주의사항:
+
+- CSV는 계좌 분포와 금액만 제어합니다.
+- `idempotencyKey`는 JMeter의 `__UUID()`로 요청마다 생성합니다.
+- JMeter 플랜은 CSV row를 재사용하지 않습니다. CSV가 소진되면 스레드가 중지됩니다.
+- CSV row 수는 최소 `threads * loops` 이상이어야 합니다.
+- 이 벤치마크는 hot account 경합이 아닌 일반 분산 write throughput을 보기 위한 기준선입니다.
+
+세부 문서:
+
+```text
+docs/distributed-transfer-jmeter.md
+```
+
+## 다음 단계
+
+- Phase B: MySQL schema, index, EXPLAIN, N+1 확인, isolation/lock 테스트, HikariCP 튜닝, JMeter 부하 테스트
+- Phase C: Redis cache와 distributed lock 실험
+- Phase D: 부하 테스트로 병목이 증명된 모듈만 분리
