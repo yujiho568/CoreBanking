@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(gh repo *)"
-    ]
-  }
-}
-1
