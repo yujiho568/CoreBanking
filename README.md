@@ -428,8 +428,6 @@ accountLedgerEntries::PHASEB-ACC-000001:50
 
 ### JMeter 실행
 
-기존 `jmeter/corebanking-read-transaction-benchmark.jmx`가 결과 CSV로 덮여 있어, 계좌 원장 조회 전용 JMeter plan을 새로 추가했습니다.
-
 ```text
 jmeter/corebanking-read-ledger-cache-benchmark.jmx
 ```
