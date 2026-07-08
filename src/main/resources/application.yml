@@ -8,6 +8,16 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:core}
     password: ${SPRING_DATASOURCE_PASSWORD:core}
 
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  cache:
+    type: ${SPRING_CACHE_TYPE:none}
+    redis:
+      time-to-live: ${CORE_BANKING_CACHE_TTL:60s}
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -36,7 +46,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,caches
 
 logging:
   level:
@@ -44,6 +54,10 @@ logging:
     org.hibernate.SQL: DEBUG
 
 core-banking:
+  cache:
+    ttl: ${CORE_BANKING_CACHE_TTL:60s}
+    account-ttl: ${CORE_BANKING_ACCOUNT_CACHE_TTL:30s}
+    ledger-ttl: ${CORE_BANKING_LEDGER_CACHE_TTL:60s}
   account:
     lock-mode: ${CORE_BANKING_ACCOUNT_LOCK_MODE:pessimistic}
   seed:

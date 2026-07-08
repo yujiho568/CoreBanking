@@ -1,7 +1,9 @@
 package com.corebanking.ledger.service;
 
+import com.corebanking.ledger.dto.LedgerEntryResponse;
 import com.corebanking.ledger.entity.LedgerEntry;
 import com.corebanking.ledger.repository.LedgerEntryRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,5 +28,17 @@ public class LedgerReadService {
     public List<LedgerEntry> getAccountLedgerEntries(String accountId, int limit) {
         int size = Math.max(1, Math.min(limit, 100));
         return ledgerEntryRepository.findByAccountIdOrderByCreatedAtDesc(accountId, PageRequest.of(0, size));
+    }
+
+    @Cacheable(
+            cacheNames = "accountLedgerEntries",
+            key = "#accountId + ':' + T(java.lang.Math).max(1, T(java.lang.Math).min(#limit, 100))"
+    )
+    @Transactional(readOnly = true)
+    public List<LedgerEntryResponse> getAccountLedgerEntryResponses(String accountId, int limit) {
+        return getAccountLedgerEntries(accountId, limit)
+                .stream()
+                .map(LedgerEntryResponse::from)
+                .toList();
     }
 }

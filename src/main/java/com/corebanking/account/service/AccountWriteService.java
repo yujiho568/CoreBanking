@@ -7,6 +7,8 @@ import com.corebanking.account.exception.InsufficientBalanceException;
 import com.corebanking.account.port.AccountTransferPort;
 import com.corebanking.account.port.AccountTransferResult;
 import com.corebanking.account.repository.AccountRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,6 +26,7 @@ public class AccountWriteService implements AccountTransferPort {
     }
 
     @Override
+    @CacheEvict(cacheNames = "accounts", key = "#accountId")
     public void reserve(String accountId, BigDecimal amount) {
         Account account = getRequiredAccount(accountId);
         validateActive(account);
@@ -38,6 +41,10 @@ public class AccountWriteService implements AccountTransferPort {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "accounts", key = "#fromAccountId"),
+            @CacheEvict(cacheNames = "accounts", key = "#toAccountId")
+    })
     public AccountTransferResult commitTransfer(String fromAccountId, String toAccountId, BigDecimal amount) {
         Account from = getRequiredAccount(fromAccountId);
         Account to = getRequiredAccount(toAccountId);

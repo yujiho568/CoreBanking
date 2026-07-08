@@ -1,7 +1,6 @@
 package com.corebanking.account.controller;
 
 import com.corebanking.account.dto.AccountResponse;
-import com.corebanking.account.entity.Account;
 import com.corebanking.account.service.AccountReadService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +19,6 @@ public class AccountController {
 
     @GetMapping("/{accountId}")
     public AccountResponse getAccount(@PathVariable String accountId) {
-        Account account = accountReadService.getAccount(accountId);
-        return AccountResponse.from(account);
+        return accountReadService.getAccountResponse(accountId);
     }
 }

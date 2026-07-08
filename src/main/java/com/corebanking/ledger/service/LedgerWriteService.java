@@ -3,6 +3,7 @@ package com.corebanking.ledger.service;
 import com.corebanking.ledger.entity.LedgerEntry;
 import com.corebanking.ledger.port.LedgerRecordPort;
 import com.corebanking.ledger.repository.LedgerEntryRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ public class LedgerWriteService implements LedgerRecordPort {
     }
 
     @Override
+    @CacheEvict(cacheNames = "accountLedgerEntries", allEntries = true)
     public void record(
             String fromAccountId,
             String toAccountId,

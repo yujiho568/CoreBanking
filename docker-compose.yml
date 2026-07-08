@@ -37,6 +37,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   seed:
     build: .

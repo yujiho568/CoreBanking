@@ -25,9 +25,6 @@ public class LedgerController {
             @PathVariable String accountId,
             @RequestParam(defaultValue = "50") int limit
     ) {
-        return ledgerReadService.getAccountLedgerEntries(accountId, limit)
-                .stream()
-                .map(LedgerEntryResponse::from)
-                .toList();
+        return ledgerReadService.getAccountLedgerEntryResponses(accountId, limit);
     }
 }
