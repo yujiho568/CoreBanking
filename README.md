@@ -366,12 +366,6 @@ jmeter -n `
 docs/distributed-transfer-jmeter.md
 ```
 
-## 다음 단계
-
-- Phase B: MySQL schema, index, EXPLAIN, N+1 확인, isolation/lock 테스트, HikariCP 튜닝, JMeter 부하 테스트
-- Phase C: Redis cache와 distributed lock 실험
-- Phase D: 부하 테스트로 병목이 증명된 모듈만 분리
-
 ## Redis 계좌 원장 조회 캐시 검증
 
 계좌 원장 조회 API에 Redis cache를 적용하고 JMeter로 적용 전/후 성능을 비교했습니다.
@@ -382,16 +376,10 @@ GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50
 
 ### 문제 원인
 
-처음 Redis 적용 전/후 JMeter 결과가 거의 동일했습니다. 확인 결과 원인은 두 가지였습니다.
+Redis cache 적용 후 API 호출 시 Redis 직렬화 오류가 발생했습니다.
 
-1. 오래된 Docker image가 실행 중이었습니다.
-   - 실행 중인 `/app/app.jar`가 Redis cache 설정이 들어가기 전 빌드본이었습니다.
-   - jar 내부 `application.yml`에 `spring.cache`, `spring.data.redis`, `management.endpoints.web.exposure.include: caches` 설정이 없었습니다.
-   - 따라서 `.env`에 `SPRING_CACHE_TYPE=redis`가 있어도 실제 실행 앱은 Redis cache를 사용하지 않았습니다.
-
-2. 최신 image로 다시 빌드한 뒤에는 Redis 직렬화 오류가 발생했습니다.
-   - Spring Boot 기본 Redis cache serializer는 JDK serialization을 사용합니다.
-   - cache value인 DTO가 `Serializable`을 구현하지 않아 Redis 저장 단계에서 500 오류가 발생했습니다.
+- Spring Boot 기본 Redis cache serializer는 JDK serialization을 사용합니다.
+- cache value인 DTO가 `Serializable`을 구현하지 않아 Redis 저장 단계에서 500 오류가 발생했습니다.
 
 오류 로그:
 
