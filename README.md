@@ -371,3 +371,128 @@ docs/distributed-transfer-jmeter.md
 - Phase B: MySQL schema, index, EXPLAIN, N+1 확인, isolation/lock 테스트, HikariCP 튜닝, JMeter 부하 테스트
 - Phase C: Redis cache와 distributed lock 실험
 - Phase D: 부하 테스트로 병목이 증명된 모듈만 분리
+
+## Redis 계좌 원장 조회 캐시 검증
+
+계좌 원장 조회 API에 Redis cache를 적용하고 JMeter로 적용 전/후 성능을 비교했습니다.
+
+```http
+GET /api/accounts/PHASEB-ACC-000001/ledger-entries?limit=50
+```
+
+### 문제 원인
+
+처음 Redis 적용 전/후 JMeter 결과가 거의 동일했습니다. 확인 결과 원인은 두 가지였습니다.
+
+1. 오래된 Docker image가 실행 중이었습니다.
+   - 실행 중인 `/app/app.jar`가 Redis cache 설정이 들어가기 전 빌드본이었습니다.
+   - jar 내부 `application.yml`에 `spring.cache`, `spring.data.redis`, `management.endpoints.web.exposure.include: caches` 설정이 없었습니다.
+   - 따라서 `.env`에 `SPRING_CACHE_TYPE=redis`가 있어도 실제 실행 앱은 Redis cache를 사용하지 않았습니다.
+
+2. 최신 image로 다시 빌드한 뒤에는 Redis 직렬화 오류가 발생했습니다.
+   - Spring Boot 기본 Redis cache serializer는 JDK serialization을 사용합니다.
+   - cache value인 DTO가 `Serializable`을 구현하지 않아 Redis 저장 단계에서 500 오류가 발생했습니다.
+
+오류 로그:
+
+```text
+java.io.NotSerializableException: com.corebanking.ledger.dto.LedgerEntryResponse
+```
+
+### 해결 방법
+
+cache 대상 DTO가 JDK serialization 대상이 되도록 `Serializable`을 구현했습니다.
+
+```java
+public record LedgerEntryResponse(...) implements Serializable
+```
+
+```java
+public record AccountResponse(...) implements Serializable
+```
+
+수정 파일:
+
+```text
+src/main/java/com/corebanking/ledger/dto/LedgerEntryResponse.java
+src/main/java/com/corebanking/account/dto/AccountResponse.java
+```
+
+이후 최신 image를 다시 빌드하고 앱을 재기동했습니다.
+
+```powershell
+.\gradlew.bat test
+docker compose build app
+docker compose up -d app
+```
+
+Redis cache key 생성도 확인했습니다.
+
+```powershell
+docker compose exec redis redis-cli keys "*"
+```
+
+생성된 key:
+
+```text
+accountLedgerEntries::PHASEB-ACC-000001:50
+```
+
+### JMeter 실행
+
+기존 `jmeter/corebanking-read-transaction-benchmark.jmx`가 결과 CSV로 덮여 있어, 계좌 원장 조회 전용 JMeter plan을 새로 추가했습니다.
+
+```text
+jmeter/corebanking-read-ledger-cache-benchmark.jmx
+```
+
+JMeter 실행 예시:
+
+```powershell
+jmeter.bat -n `
+  -t jmeter\corebanking-read-ledger-cache-benchmark.jmx `
+  -l jmeter\corebanking-read-ledger-cache-measured.jtl `
+  -Jthreads=5 `
+  -Jloops=300 `
+  -JrampUp=1 `
+  -JaccountId=PHASEB-ACC-000001 `
+  -Jlimit=50
+```
+
+Redis 미적용 비교는 임시로 cache type을 `none`으로 설정한 app container를 실행해서 측정했습니다.
+
+```powershell
+docker compose stop app
+docker compose run -d --name corebanking-app-nocache --service-ports -e SPRING_CACHE_TYPE=none app
+```
+
+측정 후 원래 Redis 적용 app으로 복구했습니다.
+
+```powershell
+docker rm -f corebanking-app-nocache
+docker compose up -d app
+```
+
+### JMeter 비교 결과
+
+공통 조건:
+
+```text
+threads=5
+loops=300
+samples=1500
+accountId=PHASEB-ACC-000001
+limit=50
+```
+
+| 구분 | Average | Min | Max | P50 | P90 | P95 | P99 | Error | Throughput |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Redis 미적용 | 26.02 ms | 9 ms | 516 ms | 19 ms | 48 ms | 58 ms | 82 ms | 0.00% | 177.5/sec |
+| Redis 적용 | 9.31 ms | 5 ms | 66 ms | 8 ms | 14 ms | 18 ms | 35 ms | 0.00% | 408.3/sec |
+
+결론:
+
+- Redis 적용 후 평균 응답시간이 `26.02 ms`에서 `9.31 ms`로 감소했습니다.
+- Throughput은 `177.5/sec`에서 `408.3/sec`로 증가했습니다.
+- Redis 적용 상태에서는 측정 구간에서 ledger 조회 SQL이 반복 실행되지 않았습니다.
+- Redis 미적용 상태에서는 Redis key가 생성되지 않았고 ledger 조회 SQL이 반복 실행됐습니다.
