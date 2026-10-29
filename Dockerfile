@@ -5,16 +5,21 @@ WORKDIR /workspace
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle settings.gradle ./
-COPY src src
+COPY app app
+COPY common common
+COPY account account
+COPY transfer transfer
+COPY ledger ledger
+COPY notification notification
 
 RUN chmod +x gradlew
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew :app:bootJar --no-daemon
 
 FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-COPY --from=build /workspace/build/libs/*.jar app.jar
+COPY --from=build /workspace/app/build/libs/*.jar app.jar
 
 EXPOSE 8080
 

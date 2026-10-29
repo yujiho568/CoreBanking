@@ -1,0 +1,58 @@
+{
+  "runId": "REQUIRED",
+  "measuredAt": "REQUIRED",
+  "gitCommit": "REQUIRED",
+  "dirtyDiffArchive": "REQUIRED",
+  "scenario": "index-off/index-on/cache-off/cache-on",
+  "command": "REQUIRED full exact command",
+  "effectiveParameters": {
+    "threads": 5,
+    "rampUp": 5,
+    "loops": 300,
+    "accountId": "PHASEB-ACC-000001",
+    "limit": 50
+  },
+  "expectedRequests": 1500,
+  "actualRequests": null,
+  "data": {
+    "accounts": null,
+    "transfers": null,
+    "ledgerEntries": null,
+    "distribution": "single account"
+  },
+  "cache": {
+    "application": "none for index comparison",
+    "redisFlushed": null,
+    "dbBuffer": "warm/cold and procedure REQUIRED"
+  },
+  "warmup": {
+    "command": "REQUIRED",
+    "requests": null,
+    "excludedFromMeasurement": true
+  },
+  "environment": {
+    "cpu": "REQUIRED",
+    "ram": "REQUIRED",
+    "os": "REQUIRED",
+    "java": "REQUIRED",
+    "springBoot": "3.2.4",
+    "mysql": "REQUIRED actual version",
+    "redis": "REQUIRED actual version",
+    "jmeter": "REQUIRED",
+    "containerLimits": "REQUIRED"
+  },
+  "results": {
+    "samples": null,
+    "meanMs": null,
+    "p95Ms": null,
+    "p99Ms": null,
+    "errorPercent": null,
+    "observedThroughputPerSec": null
+  },
+  "artifacts": {
+    "raw": "REQUIRED .jtl/.csv",
+    "htmlReport": "REQUIRED",
+    "explain": "REQUIRED for index",
+    "notes": "REQUIRED"
+  }
+}

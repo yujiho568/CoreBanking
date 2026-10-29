@@ -1,0 +1,66 @@
+package com.corebanking.transfer.service;
+
+import com.corebanking.account.repository.AccountRepository;
+import com.corebanking.ledger.repository.LedgerEntryRepository;
+import com.corebanking.transfer.dto.CreateTransferRequest;
+import com.corebanking.transfer.entity.TransferStatus;
+import com.corebanking.transfer.repository.TransferRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+class TransferWriteServiceIntegrationTest {
+
+    private final TransferWriteService transferWriteService;
+    private final TransferRepository transferRepository;
+    private final AccountRepository accountRepository;
+    private final LedgerEntryRepository ledgerEntryRepository;
+
+    @Autowired
+    TransferWriteServiceIntegrationTest(
+            TransferWriteService transferWriteService,
+            TransferRepository transferRepository,
+            AccountRepository accountRepository,
+            LedgerEntryRepository ledgerEntryRepository
+    ) {
+        this.transferWriteService = transferWriteService;
+        this.transferRepository = transferRepository;
+        this.accountRepository = accountRepository;
+        this.ledgerEntryRepository = ledgerEntryRepository;
+    }
+
+    @Test
+    void executeTransferCompletesInSingleTransactionAndIsIdempotent() {
+        var beforeFrom = accountRepository.findById("ACC-001").orElseThrow();
+        var beforeTo = accountRepository.findById("ACC-002").orElseThrow();
+        BigDecimal amount = new BigDecimal("10000.00");
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "idem-test-" + UUID.randomUUID(),
+                "ACC-001",
+                "ACC-002",
+                amount
+        );
+
+        var first = transferWriteService.execute(request);
+        var second = transferWriteService.execute(request);
+
+        assertThat(second.getTransferId()).isEqualTo(first.getTransferId());
+        assertThat(first.getStatus()).isEqualTo(TransferStatus.COMPLETED);
+        assertThat(transferRepository.findById(first.getTransferId()).orElseThrow().getStatus())
+                .isEqualTo(TransferStatus.COMPLETED);
+        assertThat(ledgerEntryRepository.findByTransferIdOrderByCreatedAtAsc(first.getTransferId())).hasSize(2);
+
+        var from = accountRepository.findById("ACC-001").orElseThrow();
+        var to = accountRepository.findById("ACC-002").orElseThrow();
+        assertThat(from.getBalance()).isEqualByComparingTo(beforeFrom.getBalance().subtract(amount));
+        assertThat(from.getReservedBalance()).isEqualByComparingTo("0.00");
+        assertThat(to.getBalance()).isEqualByComparingTo(beforeTo.getBalance().add(amount));
+    }
+}

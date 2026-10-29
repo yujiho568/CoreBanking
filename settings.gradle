@@ -13,3 +13,10 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = 'core-banking'
+
+include 'app'
+include 'common'
+include 'account'
+include 'transfer'
+include 'ledger'
+include 'notification'

@@ -45,3 +45,5 @@ jmeter.log
 ### JMeter generated files ###
 jmeter/distributed-transfer-requests.csv
 jmeter/*.jtl
+
+.gradle-local/
