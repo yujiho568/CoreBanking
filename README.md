@@ -484,14 +484,10 @@ limit=50
 - Redis 미적용 상태에서는 Redis key가 생성되지 않았고 ledger 조회 SQL이 반복 실행됐습니다.
 
 
-## 제출 이후 정합성 개선 (2026-10-30)
+## 거래 정합성 및 검증 기준
 
-기존 제출본의 성능 수치는 위에 보존했습니다. 이번 변경으로 새 부하 측정을 수행하지 않았으며,
-과거 수치가 변경된 구현의 성능을 나타내지는 않습니다. 인덱스 비교는 요청 수가 달라 동일 조건을 확정할 수 없습니다.
-
-- [변경 이유, 트랜잭션 경계, 검증 및 한계](docs/post-submission-improvements.md)
+- [트랜잭션 정합성·멱등성·캐시 무효화 설계](docs/consistency-and-reliability.md)
 - [재현 가능한 성능 측정 절차](docs/benchmark-reproduction.md)
-- [과거 JMeter 원본 출처](jmeter/history/README.md)
+- [JMeter 측정 자료 출처](jmeter/history/README.md)
 
-현재 작업 폴더는 여러 Gradle 모듈로 이동 중이며, 기존 구조 설명과 `src/...` 경로는 제출 당시 설명입니다.
-현재 실행 모듈은 `app`, 도메인 모듈은 `account`, `transfer`, `ledger`, `notification`, 공통 코드는 `common`입니다.
+프로젝트는 Gradle 멀티모듈 구조입니다. 실행 모듈은 `app`, 도메인 모듈은 `account`, `transfer`, `ledger`, `notification`, 공통 코드는 `common`입니다.
