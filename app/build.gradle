@@ -8,6 +8,7 @@ dependencies {
     implementation project(':transfer')
     implementation project(':ledger')
     implementation project(':notification')
+    implementation project(':openbanking')
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-batch'

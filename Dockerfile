@@ -11,6 +11,7 @@ COPY account account
 COPY transfer transfer
 COPY ledger ledger
 COPY notification notification
+COPY openbanking openbanking
 
 RUN chmod +x gradlew
 RUN ./gradlew :app:bootJar --no-daemon
