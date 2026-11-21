@@ -35,3 +35,17 @@ if (project.hasProperty('localTest')) {
         systemProperty 'core-banking.cache.worker-enabled', 'false'
     }
 }
+
+configurations { mockRuntime }
+dependencies { mockRuntime 'com.h2database:h2' }
+tasks.register('mockBootRun', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = 'Runs the synthetic local demo on 127.0.0.1:8082; start scripts/mock_openbanking.py first.'
+    mainClass = 'com.corebanking.CoreBankingApplication'
+    classpath = sourceSets.main.runtimeClasspath + configurations.mockRuntime
+    args '--spring.profiles.active=mock', '--server.address=127.0.0.1', '--server.port=8082',
+            '--spring.datasource.url=jdbc:h2:mem:mockdemo;MODE=MySQL;DB_CLOSE_DELAY=-1',
+            '--spring.datasource.driver-class-name=org.h2.Driver', '--spring.datasource.username=sa',
+            '--spring.datasource.password=', '--spring.cache.type=simple',
+            '--spring.jpa.hibernate.ddl-auto=update', '--management.health.redis.enabled=false'
+}

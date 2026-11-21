@@ -1,0 +1,35 @@
+{
+  "mode": "MOCK",
+  "scope": "Full CoreBanking HTTP API + ownership DB check + HTTP provider (30ms delay)",
+  "database": "H2 application / SQLite synthetic provider",
+  "cache": "ConcurrentMapCache (not Redis)",
+  "samples_per_case": 30,
+  "refresh": {
+    "requests": 30,
+    "concurrency": 1,
+    "refresh": true,
+    "mean_ms": 54.27426999958698,
+    "p95_ms": 67.88260000030277,
+    "throughput_per_second": 18.387916638018684,
+    "errors": 0,
+    "error_rate": 0.0,
+    "statuses": {
+      "200": 30
+    },
+    "provider_http_attempts": 30
+  },
+  "warm_cache": {
+    "requests": 30,
+    "concurrency": 1,
+    "refresh": false,
+    "mean_ms": 11.882180000005368,
+    "p95_ms": 28.54490000026999,
+    "throughput_per_second": 83.50554031401532,
+    "errors": 0,
+    "error_rate": 0.0,
+    "statuses": {
+      "200": 30
+    },
+    "provider_http_attempts": 0
+  }
+}

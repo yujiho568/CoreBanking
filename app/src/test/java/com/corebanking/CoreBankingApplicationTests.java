@@ -9,4 +9,13 @@ class CoreBankingApplicationTests {
     @Test
     void contextLoads() {
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    org.springframework.context.ApplicationContext context;
+
+    @Test
+    void defaultProfileDoesNotExposeMockDemo() {
+        org.assertj.core.api.Assertions.assertThat(context.getBeansOfType(
+                com.corebanking.openbanking.controller.MockDemoController.class)).isEmpty();
+    }
 }

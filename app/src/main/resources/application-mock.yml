@@ -1,0 +1,42 @@
+# Explicit opt-in. All credentials and accounts below are synthetic.
+spring:
+  datasource:
+    url: jdbc:h2:mem:mockdemo;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+    show-sql: false
+  cache:
+    type: simple
+  batch:
+    job:
+      enabled: false
+server:
+  address: 127.0.0.1
+  port: 8082
+management:
+  health:
+    redis:
+      enabled: false
+logging:
+  level:
+    com.corebanking: INFO
+    org.hibernate.SQL: OFF
+core-banking:
+  cache:
+    worker-enabled: false
+  open-banking:
+    base-url: http://127.0.0.1:9099
+    authorization-url: http://127.0.0.1:9099/oauth/2.0/authorize
+    client-id: mock-client
+    client-secret: mock-secret
+    client-use-code: MOCK000001
+    redirect-uri: http://localhost:8082/api/open-banking/oauth/callback
+    scopes: login inquiry
+    auth-type: "0"
+    # Public dummy key ONLY for synthetic local data. Never use for real tokens.
+    encryption-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=

@@ -129,6 +129,10 @@ X-User-Id: demo-user
 외부 조회 캐시·동일 요청 합치기와 DATOP 파일 반입·인덱스 실험은
 [외부 조회 성능 개선 및 재현 방법](docs/external-query-performance.md)을 참고합니다.
 
+실제 API 권한 없이 생성 계좌·거래를 조회하려면
+[Mock 데이터 데모 실행](docs/mock-open-banking.md)을 사용합니다. 독립 SQLite 기반 Mock API와
+`mock` 프로필을 통해 인증·잔액·거래내역·캐시를 로컬에서 검증합니다.
+
 브라우저 테스트 페이지:
 
 ```text

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><title>CoreBanking Mock Demo</title>
+<style>body{font:16px system-ui;max-width:1000px;margin:40px auto;padding:0 20px;background:#f4f6fa;color:#162238}button,a{padding:10px;margin:5px;display:inline-block}pre{background:white;padding:20px;overflow:auto;border-radius:10px}label{display:inline-block;margin:8px}header{border-left:5px solid #cc7800;padding-left:20px}</style>
+<header><h1>CoreBanking · Mock 계좌 조회</h1><p>표시되는 계좌·잔액·거래는 모두 생성 데이터입니다. 실제 금융결제원이나 은행을 호출하지 않습니다.</p></header>
+<p><a href="/api/mock/connect" target="_blank" rel="noopener">1. Mock 계좌 연결</a><button onclick="listAccounts()">2. 연결 계좌 불러오기</button></p>
+<label>계좌 <select id="accounts"></select></label><label>시작 <input id="from" type="date" value="2026-11-01"></label><label>종료 <input id="to" type="date" value="2026-11-21"></label>
+<p><button onclick="balance(false)">잔액 조회</button><button onclick="balance(true)">잔액 새로고침</button><button onclick="transactions(false)">거래내역 3페이지 조회</button><button onclick="transactions(true)">거래내역 새로고침</button><button onclick="metrics()">외부 호출 횟수</button></p>
+<p>같은 조회를 반복해 fetchedAt과 호출 횟수를 비교하세요. 이 데모의 메모리 캐시는 자동 TTL 만료 없이 새로고침으로 갱신합니다.</p>
+<pre id="output">Mock 서버와 CoreBanking을 실행한 뒤 계좌를 연결하세요. 연결 결과는 새 탭에 표시됩니다.</pre>
+<script>
+const out=document.getElementById('output'), accounts=document.getElementById('accounts');
+async function get(path){const start=performance.now();const r=await fetch(path,{headers:{'X-User-Id':'mock-demo-user'}});const data=await r.json();out.textContent=JSON.stringify({mode:'MOCK',status:r.status,elapsedMs:Math.round(performance.now()-start),data},null,2);if(!r.ok)throw Error('HTTP '+r.status);return data;}
+async function listAccounts(){try{const rows=await get('/api/external-accounts');accounts.replaceChildren(...rows.map(a=>{const o=document.createElement('option');o.value=a.externalAccountId;o.textContent=a.accountAlias+' · '+a.maskedAccountNumber;return o;}));}catch(e){out.textContent+=String(e);}}
+function selected(){if(!accounts.value){out.textContent='먼저 Mock 계좌 연결과 계좌 불러오기를 진행하세요.';return null;}return '/api/external-accounts/'+encodeURIComponent(accounts.value);}
+async function balance(refresh){const p=selected();if(p)try{await get(p+'/balance?refresh='+refresh);}catch(e){}}
+async function transactions(refresh){const p=selected();if(p)try{const q=new URLSearchParams({fromDate:document.getElementById('from').value,toDate:document.getElementById('to').value,maxPages:'3',refresh:String(refresh)});await get(p+'/transactions?'+q);}catch(e){}}
+async function metrics(){try{await get('/actuator/metrics/openbanking.provider.requests');}catch(e){}}
+</script></html>

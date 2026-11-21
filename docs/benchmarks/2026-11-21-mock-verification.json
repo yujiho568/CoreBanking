@@ -1,0 +1,41 @@
+{
+  "mode": "MOCK",
+  "database": "H2 application + SQLite synthetic provider",
+  "cache": "ConcurrentMapCache, no TTL expiry",
+  "connected_accounts": 2,
+  "transactions_verified": 75,
+  "results": [
+    {
+      "case": "balance_fresh",
+      "http_status": 200,
+      "provider_http_attempts": 1
+    },
+    {
+      "case": "balance_cached",
+      "http_status": 200,
+      "provider_http_attempts": 0
+    },
+    {
+      "case": "balance_refresh",
+      "http_status": 200,
+      "provider_http_attempts": 1
+    },
+    {
+      "case": "transactions_three_pages",
+      "http_status": 200,
+      "provider_http_attempts": 3
+    },
+    {
+      "case": "transactions_cached",
+      "http_status": 200,
+      "provider_http_attempts": 0
+    },
+    {
+      "case": "transactions_changed_page_limit",
+      "http_status": 200,
+      "provider_http_attempts": 1
+    }
+  ],
+  "ownership_checked_before_cache": true,
+  "invalid_page_limit_rejected": true
+}
