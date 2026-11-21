@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-21",
+  "provider": "https://testapi.openbanking.or.kr",
+  "through_corebanking": true,
+  "database": "H2 file (isolated)",
+  "cache": "ConcurrentMapCache (in-memory; not Redis)",
+  "connected_accounts": 1,
+  "results": [
+    {
+      "case": "balance_fresh",
+      "http_status": 502,
+      "elapsed_ms": 172.15,
+      "provider_http_attempts": 1,
+      "error_code": "OPEN_BANKING_PROVIDER_ERROR"
+    },
+    {
+      "case": "balance_cached",
+      "http_status": 502,
+      "elapsed_ms": 83.26,
+      "provider_http_attempts": 1,
+      "error_code": "OPEN_BANKING_PROVIDER_ERROR"
+    },
+    {
+      "case": "balance_refresh",
+      "http_status": 502,
+      "elapsed_ms": 104.29,
+      "provider_http_attempts": 1,
+      "error_code": "OPEN_BANKING_PROVIDER_ERROR"
+    },
+    {
+      "case": "transactions_fresh",
+      "http_status": 502,
+      "elapsed_ms": 340.69,
+      "provider_http_attempts": 1,
+      "error_code": "OPEN_BANKING_PROVIDER_ERROR"
+    },
+    {
+      "case": "transactions_cached",
+      "http_status": 502,
+      "elapsed_ms": 87.37,
+      "provider_http_attempts": 1,
+      "error_code": "OPEN_BANKING_PROVIDER_ERROR"
+    }
+  ],
+  "checks": {},
+  "oauth_authorization_code_exchange": "succeeded",
+  "user_me_and_account_sync": "succeeded",
+  "provider_error": {
+    "rsp_code": "A0002",
+    "message": "API processing system: simulator response message does not exist"
+  },
+  "failed_responses_not_cached": true,
+  "normal_balance_and_transactions_verified": false,
+  "cache_hit_with_successful_testbed_response_verified": false
+}
