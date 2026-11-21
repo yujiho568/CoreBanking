@@ -47,3 +47,7 @@ jmeter/distributed-transfer-requests.csv
 jmeter/*.jtl
 
 .gradle-local/
+
+# Raw/normalized external datasets and local benchmark output
+/datop-data/
+__pycache__/

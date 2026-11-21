@@ -27,8 +27,9 @@ public class ExternalAccountController {
 
     @GetMapping("/{externalAccountId}/balance")
     public ExternalBalanceResponse balance(@RequestHeader("X-User-Id") String ownerId,
-                                           @PathVariable String externalAccountId) {
-        return service.balance(requireOwner(ownerId), externalAccountId);
+                                           @PathVariable String externalAccountId,
+                                           @RequestParam(defaultValue = "false") boolean refresh) {
+        return service.balance(requireOwner(ownerId), externalAccountId, refresh);
     }
 
     @GetMapping("/{externalAccountId}/transactions")
@@ -39,7 +40,8 @@ public class ExternalAccountController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(defaultValue = "A") String inquiryType,
             @RequestParam(defaultValue = "D") String sortOrder,
-            @RequestParam(defaultValue = "1") int maxPages
+            @RequestParam(defaultValue = "1") int maxPages,
+            @RequestParam(defaultValue = "false") boolean refresh
     ) {
         if (!List.of("A", "I", "O").contains(inquiryType)) {
             throw new IllegalArgumentException("inquiryType must be A, I, or O.");
@@ -48,7 +50,7 @@ public class ExternalAccountController {
             throw new IllegalArgumentException("sortOrder must be A or D.");
         }
         TransactionQuery query = new TransactionQuery(fromDate, toDate, inquiryType, sortOrder, null);
-        return service.transactions(requireOwner(ownerId), externalAccountId, query, maxPages);
+        return service.transactions(requireOwner(ownerId), externalAccountId, query, maxPages, refresh);
     }
 
     private String requireOwner(String ownerId) {

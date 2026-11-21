@@ -40,9 +40,14 @@ public class CacheConfig {
     public RedisCacheManagerBuilderCustomizer redisCacheManagerBuilderCustomizer(
             RedisCacheConfiguration redisCacheConfiguration,
             @Value("${core-banking.cache.account-ttl:30s}") Duration accountCacheTtl,
-            @Value("${core-banking.cache.ledger-ttl:60s}") Duration ledgerCacheTtl
+            @Value("${core-banking.cache.ledger-ttl:60s}") Duration ledgerCacheTtl,
+            @Value("${core-banking.cache.external-balance-ttl:10s}") Duration balanceTtl,
+            @Value("${core-banking.cache.external-transactions-ttl:60s}") Duration transactionsTtl
     ) {
         return builder -> builder
+                .withCacheConfiguration("externalBalances", redisCacheConfiguration.entryTtl(balanceTtl))
+                .withCacheConfiguration("externalTransactions", redisCacheConfiguration.entryTtl(transactionsTtl))
+                .withCacheConfiguration("importedTransactions", redisCacheConfiguration.entryTtl(transactionsTtl))
                 .withCacheConfiguration("accounts", redisCacheConfiguration.entryTtl(accountCacheTtl))
                 .withCacheConfiguration("accountLedgerEntries", redisCacheConfiguration.entryTtl(ledgerCacheTtl));
     }

@@ -23,16 +23,18 @@ public class ExternalAccountQueryService {
     private final OpenBankingTokenService tokenService;
     private final OpenBankingPort port;
     private final SensitiveValueCipher cipher;
+    private final ExternalQueryCache cache;
 
     public ExternalAccountQueryService(ExternalAccountRepository accounts,
                                        OpenBankingConnectionRepository connections,
                                        OpenBankingTokenService tokenService, OpenBankingPort port,
-                                       SensitiveValueCipher cipher) {
+                                       SensitiveValueCipher cipher, ExternalQueryCache cache) {
         this.accounts = accounts;
         this.connections = connections;
         this.tokenService = tokenService;
         this.port = port;
         this.cipher = cipher;
+        this.cache = cache;
     }
 
     public List<ExternalAccountResponse> list(String ownerId) {
@@ -41,34 +43,54 @@ public class ExternalAccountQueryService {
     }
 
     public ExternalBalanceResponse balance(String ownerId, String externalAccountId) {
+        return balance(ownerId, externalAccountId, false);
+    }
+
+    public ExternalBalanceResponse balance(String ownerId, String externalAccountId, boolean refresh) {
         OwnedAccount owned = getOwned(ownerId, externalAccountId);
-        String token = tokenService.validAccessToken(owned.connection());
-        BalanceInfo balance = port.getBalance(token, cipher.decrypt(owned.account().getFintechUseNumCiphertext()));
-        return ExternalBalanceResponse.of(owned.account(), balance);
+        return cache.read("externalBalances", ExternalQueryCache.key(ownerId, externalAccountId,
+                owned.connection().getAccessTokenCiphertext()), refresh, () -> {
+            String token = tokenService.validAccessToken(owned.connection());
+            BalanceInfo balance = port.getBalance(token, cipher.decrypt(owned.account().getFintechUseNumCiphertext()));
+            return ExternalBalanceResponse.of(owned.account(), balance);
+        });
     }
 
     public ExternalTransactionsResponse transactions(String ownerId, String externalAccountId,
-                                                     TransactionQuery initialQuery, int maxPages) {
+                                                     TransactionQuery query, int maxPages) {
+        return transactions(ownerId, externalAccountId, query, maxPages, false);
+    }
+
+    public ExternalTransactionsResponse transactions(String ownerId, String externalAccountId,
+                                                     TransactionQuery initialQuery, int maxPages, boolean refresh) {
         if (maxPages < 1 || maxPages > 20) throw new IllegalArgumentException("maxPages must be between 1 and 20.");
-        if (initialQuery.fromDate().isAfter(initialQuery.toDate())) {
+        if (initialQuery.fromDate().isAfter(initialQuery.toDate()))
             throw new IllegalArgumentException("fromDate must not be after toDate.");
-        }
+        if (!List.of("A", "I", "O").contains(initialQuery.inquiryType()) ||
+                !List.of("A", "D").contains(initialQuery.sortOrder()))
+            throw new IllegalArgumentException("Invalid inquiry type or sort order.");
         OwnedAccount owned = getOwned(ownerId, externalAccountId);
+        return cache.read("externalTransactions", ExternalQueryCache.key(ownerId, externalAccountId,
+                owned.connection().getAccessTokenCiphertext(), initialQuery, maxPages), refresh,
+                () -> fetchTransactions(owned, externalAccountId, initialQuery, maxPages));
+    }
+
+    private ExternalTransactionsResponse fetchTransactions(OwnedAccount owned, String externalAccountId,
+                                                            TransactionQuery initialQuery, int maxPages) {
         String token = tokenService.validAccessToken(owned.connection());
         String fintechUseNum = cipher.decrypt(owned.account().getFintechUseNumCiphertext());
         List<ExternalTransactionInfo> combined = new ArrayList<>();
         TransactionQuery query = initialQuery;
-        TransactionPage page = null;
+        TransactionPage page;
         int fetched = 0;
         do {
             page = port.getTransactions(token, fintechUseNum, query);
             combined.addAll(page.transactions());
             fetched++;
             if (page.hasNext()) {
-                if (page.nextTraceInfo() == null || page.nextTraceInfo().isBlank()) {
+                if (page.nextTraceInfo() == null || page.nextTraceInfo().isBlank())
                     throw new com.corebanking.openbanking.exception.OpenBankingProviderException(
                             "Open Banking indicated another page without a continuation trace.");
-                }
                 query = query.next(page.nextTraceInfo());
             }
         } while (page.hasNext() && fetched < maxPages);
@@ -83,6 +105,8 @@ public class ExternalAccountQueryService {
         if (!account.isInquiryAgreed()) throw new OpenBankingReauthorizationRequiredException();
         OpenBankingConnection connection = connections.findById(account.getConnectionId())
                 .orElseThrow(OpenBankingReauthorizationRequiredException::new);
+        if (connection.getStatus() != com.corebanking.openbanking.entity.OpenBankingConnectionStatus.ACTIVE)
+            throw new OpenBankingReauthorizationRequiredException();
         return new OwnedAccount(account, connection);
     }
 

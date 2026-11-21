@@ -33,6 +33,17 @@ public class KftcOpenBankingAdapter implements OpenBankingPort {
     private final RestClient client;
 
     public KftcOpenBankingAdapter(OpenBankingProperties properties) {
+        this(properties, new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public KftcOpenBankingAdapter(OpenBankingProperties properties,
+            org.springframework.beans.factory.ObjectProvider<io.micrometer.core.instrument.MeterRegistry> registries) {
+        this(properties, registries.getIfAvailable(io.micrometer.core.instrument.simple.SimpleMeterRegistry::new));
+    }
+
+    private KftcOpenBankingAdapter(OpenBankingProperties properties,
+                                  io.micrometer.core.instrument.MeterRegistry metrics) {
         this.properties = properties;
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(properties.connectTimeout())
@@ -42,6 +53,11 @@ public class KftcOpenBankingAdapter implements OpenBankingPort {
         this.client = RestClient.builder()
                 .baseUrl(properties.baseUrl().toString())
                 .requestFactory(requestFactory)
+                .requestInterceptor((request, body, execution) -> {
+                    // Fixed API paths only; never tag tokens, users, query parameters or account identifiers.
+                    metrics.counter("openbanking.provider.requests", "path", request.getURI().getPath()).increment();
+                    return execution.execute(request, body);
+                })
                 .build();
     }
 

@@ -41,7 +41,8 @@ class ExternalAccountQueryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ExternalAccountQueryService(accounts, connections, tokens, port, cipher);
+        service = new ExternalAccountQueryService(accounts, connections, tokens, port, cipher,
+                new ExternalQueryCache(new org.springframework.cache.support.NoOpCacheManager(), 16));
         connection = OpenBankingConnection.connect("owner-1", "1001", "encrypted-access",
                 "encrypted-refresh", Instant.now().plusSeconds(3600), "inquiry");
         account = ExternalAccount.connect(connection.getConnectionId(), "owner-1", "encrypted-fintech",
@@ -101,6 +102,31 @@ class ExternalAccountQueryServiceTest {
 
         verifyNoInteractions(tokens, port);
         verify(connections, never()).findById(anyString());
+    }
+
+    @Test
+    void cachesIdenticalQueriesButRefreshAndChangedDatesCallProvider() {
+        service = new ExternalAccountQueryService(accounts, connections, tokens, port, cipher,
+                new ExternalQueryCache(new org.springframework.cache.concurrent.ConcurrentMapCacheManager(),16));
+        when(accounts.findById(account.getExternalAccountId())).thenReturn(Optional.of(account));
+        when(connections.findById(connection.getConnectionId())).thenReturn(Optional.of(connection));
+        when(tokens.validAccessToken(connection)).thenReturn("access-token");
+        when(cipher.decrypt(anyString())).thenReturn("fintech-number");
+        when(port.getTransactions(anyString(),anyString(),any())).thenReturn(new TransactionPage("api",List.of(),false,null));
+        var query=new TransactionQuery(LocalDate.of(2026,11,1),LocalDate.of(2026,11,2),"A","D",null);
+        var first=service.transactions("owner-1",account.getExternalAccountId(),query,1);
+        assertThat(service.transactions("owner-1",account.getExternalAccountId(),query,1)).isEqualTo(first);
+        verify(port,times(1)).getTransactions(anyString(),anyString(),any());
+        assertThatThrownBy(()->service.transactions("intruder",account.getExternalAccountId(),query,1))
+                .isInstanceOf(ExternalAccountAccessDeniedException.class);
+        service.transactions("owner-1",account.getExternalAccountId(),query,1,true);
+        service.transactions("owner-1",account.getExternalAccountId(),query,2);
+        service.transactions("owner-1",account.getExternalAccountId(),query.next("trace"),1);
+        service.transactions("owner-1",account.getExternalAccountId(),new TransactionQuery(query.fromDate(),query.toDate().plusDays(1),"A","D",null),1);
+        verify(port,times(5)).getTransactions(anyString(),anyString(),any());
+        connection.requireReauthorization();
+        assertThatThrownBy(()->service.transactions("owner-1",account.getExternalAccountId(),query,1))
+                .isInstanceOf(com.corebanking.openbanking.exception.OpenBankingReauthorizationRequiredException.class);
     }
 
     private ExternalTransactionInfo transaction(String occurredAt, String amount) {

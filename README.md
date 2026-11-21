@@ -126,6 +126,9 @@ X-User-Id: demo-user
 `X-User-Id`는 로컬 테스트용 임시 사용자 식별자이며 운영 인증 수단이 아닙니다. 테스트베드 등록과
 환경변수 설정 방법, 보안 및 검증 범위는 [오픈뱅킹 테스트베드 연동](docs/open-banking-testbed.md)을 참고합니다.
 
+외부 조회 캐시·동일 요청 합치기와 DATOP 파일 반입·인덱스 실험은
+[외부 조회 성능 개선 및 재현 방법](docs/external-query-performance.md)을 참고합니다.
+
 브라우저 테스트 페이지:
 
 ```text

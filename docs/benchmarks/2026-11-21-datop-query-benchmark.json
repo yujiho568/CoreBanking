@@ -1,0 +1,6 @@
+{
+  "environment":"H2 MySQL mode, synthetic 30000 rows / 300 accounts, ConcurrentMapCache (not Redis), 30 sequential samples per case",
+  "scan":{"mean_ms":6.2651,"p95_ms":12.4840,"throughput_per_second":159.61,"errors":0},
+  "indexed":{"mean_ms":5.4771,"p95_ms":9.0144,"throughput_per_second":182.58,"errors":0},
+  "warm_cache":{"mean_ms":2.4273,"p95_ms":4.5796,"throughput_per_second":411.99,"errors":0}
+}

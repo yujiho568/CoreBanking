@@ -19,4 +19,19 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
     runtimeOnly 'com.mysql:mysql-connector-j'
+    testRuntimeOnly 'com.h2database:h2'
+}
+
+// Opt-in disposable DB for local regression; MySQL locking tests keep their separate opt-in gate.
+if (project.hasProperty('localTest')) {
+    tasks.named('test') {
+        systemProperty 'spring.datasource.url', 'jdbc:h2:mem:corebanking;MODE=MySQL;DB_CLOSE_DELAY=-1'
+        systemProperty 'spring.datasource.driver-class-name', 'org.h2.Driver'
+        systemProperty 'spring.datasource.username', 'sa'
+        systemProperty 'spring.datasource.password', ''
+        systemProperty 'spring.jpa.hibernate.ddl-auto', 'create-drop'
+        systemProperty 'spring.jpa.defer-datasource-initialization', 'true'
+        systemProperty 'spring.cache.type', 'none'
+        systemProperty 'core-banking.cache.worker-enabled', 'false'
+    }
 }

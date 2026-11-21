@@ -58,6 +58,8 @@ logging:
 core-banking:
   cache:
     ttl: ${CORE_BANKING_CACHE_TTL:60s}
+    external-balance-ttl: ${CORE_BANKING_EXTERNAL_BALANCE_CACHE_TTL:10s}
+    external-transactions-ttl: ${CORE_BANKING_EXTERNAL_TRANSACTIONS_CACHE_TTL:60s}
     account-ttl: ${CORE_BANKING_ACCOUNT_CACHE_TTL:30s}
     ledger-ttl: ${CORE_BANKING_LEDGER_CACHE_TTL:60s}
   account:
@@ -66,6 +68,7 @@ core-banking:
     account-count: ${CORE_BANKING_SEED_ACCOUNT_COUNT:1000}
     transfer-count: ${CORE_BANKING_SEED_TRANSFER_COUNT:10000}
   open-banking:
+    max-concurrent-queries: ${OPEN_BANKING_MAX_CONCURRENT_QUERIES:16}
     base-url: ${OPEN_BANKING_BASE_URL:https://testapi.openbanking.or.kr}
     authorization-url: ${OPEN_BANKING_AUTHORIZATION_URL:https://testapi.openbanking.or.kr/oauth/2.0/authorize}
     client-id: ${OPEN_BANKING_CLIENT_ID:}

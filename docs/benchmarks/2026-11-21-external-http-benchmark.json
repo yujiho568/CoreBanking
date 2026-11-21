@@ -1,0 +1,5 @@
+{
+  "environment": "loopback HTTP, 30ms injected delay, ConcurrentMapCache (not Redis), 30 sequential samples per case",
+  "baseline": {"mean_ms":34.1835,"p95_ms":35.0754,"throughput_per_second":29.25,"errors":0,"provider_calls":30},
+  "warm_cache": {"mean_ms":0.0054,"p95_ms":0.0009,"throughput_per_second":184842.88,"errors":0,"provider_calls":0}
+}
