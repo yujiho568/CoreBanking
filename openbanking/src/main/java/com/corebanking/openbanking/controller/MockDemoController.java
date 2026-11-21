@@ -24,6 +24,8 @@ public class MockDemoController {
     public ResponseEntity<Void> connect() {
         return ResponseEntity.status(302).location(oauth.begin("mock-demo-user")).build();
     }
+    @GetMapping(value="/datop-demo", produces=MediaType.TEXT_HTML_VALUE)
+    public Resource datopPage() { return new ClassPathResource("datop-demo.html"); }
     @GetMapping(value="/mock-demo", produces=MediaType.TEXT_HTML_VALUE)
     public Resource page() { return new ClassPathResource("mock-demo.html"); }
 }

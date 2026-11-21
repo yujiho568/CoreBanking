@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><title>DATOP 반입 데이터 확인</title>
+<style>body{font:16px system-ui;max-width:1100px;margin:40px auto;padding:20px;color:#142136;background:#f4f6fa}table{width:100%;background:white;border-collapse:collapse}td,th{padding:12px;border-bottom:1px solid #ddd;text-align:left}pre{white-space:pre-wrap;overflow-wrap:anywhere}button,input,select{padding:10px;margin:5px}.notice{padding:15px;background:#fff0d4;border-left:5px solid #bd7500}</style>
+<h1>DATOP 타행이체 월별 집계</h1><p class="notice" id="notice">원본 전체 파일과 공개 미리보기는 구분해 표시합니다. 개인 계좌 잔액이나 개별 거래내역이 아닙니다.</p>
+<button onclick="load()">반입 데이터셋 불러오기</button><select id="datasets" onchange="query()"></select>
+<label>시작연월 <input id="from" value="202107" maxlength="6" size="6"></label><label>종료연월 <input id="to" value="202107" maxlength="6" size="6"></label><button onclick="query()">조회</button>
+<pre id="metadata"></pre><table><thead><tr><th>기준연월</th><th>취급은행(비식별)</th><th>개설은행(비식별)</th><th>자금구분</th><th>거래금액</th></tr></thead><tbody id="rows"></tbody></table>
+<p id="status"></p><script>
+const selector=document.getElementById('datasets');let datasets=[];
+async function get(path){const r=await fetch(path,{headers:{'X-User-Id':'mock-demo-user'}});const data=await r.json();if(!r.ok)throw Error(data.message||'HTTP '+r.status);return data;}
+async function load(){try{datasets=await get('/api/datop/datasets');selector.replaceChildren(...datasets.map(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.sourceKind+' · '+d.rowCount+'건';return o;}));if(datasets.length)await query();else document.getElementById('status').textContent='아직 반입된 집계 데이터가 없습니다.';}catch(e){document.getElementById('status').textContent=e.message;}}
+async function query(){try{const d=datasets.find(x=>x.id===selector.value);if(!d)return;
+document.getElementById('notice').textContent=d.sourceKind==='PUBLIC_PREVIEW'?'DATOP 공식 공개 미리보기 '+d.rowCount+'건입니다. 전체 원본 파일 반입이 아닙니다.':'사용자가 내려받은 DATOP 파일을 반입한 데이터입니다. 전체 제공 범위는 다운로드 파일의 내용을 따릅니다.';
+document.getElementById('metadata').textContent=JSON.stringify(d,null,2);const q=new URLSearchParams({fromMonth:document.getElementById('from').value,toMonth:document.getElementById('to').value,limit:'100'});const page=await get('/api/datop/datasets/'+encodeURIComponent(d.id)+'/aggregates?'+q);
+document.getElementById('rows').replaceChildren(...page.rows.map(r=>{const tr=document.createElement('tr');for(const value of [r.baseYm,r.handlingBankCode,r.openingBankCode,r.fundTypeCode,BigInt(r.transactionAmount).toLocaleString('ko-KR')]){const td=document.createElement('td');td.textContent=value;tr.append(td);}return tr;}));document.getElementById('status').textContent=page.rows.length+'건 표시'+(page.hasMore?' (추가 데이터 있음)':'');}catch(e){document.getElementById('status').textContent=e.message;}}
+load();
+</script></html>

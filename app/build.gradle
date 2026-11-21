@@ -49,3 +49,25 @@ tasks.register('mockBootRun', org.springframework.boot.gradle.tasks.run.BootRun)
             '--spring.datasource.password=', '--spring.cache.type=simple',
             '--spring.jpa.hibernate.ddl-auto=update', '--management.health.redis.enabled=false'
 }
+
+tasks.register('datopBootRun', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = 'Imports a DSET000004 CSV into an isolated H2 demo on port 8083.'
+    mainClass = 'com.corebanking.CoreBankingApplication'
+    classpath = sourceSets.main.runtimeClasspath + configurations.mockRuntime
+    doFirst {
+        if (!project.hasProperty('datopFile') || !project.hasProperty('datopSourceKind'))
+            throw new GradleException('Specify -PdatopFile and -PdatopSourceKind (PUBLIC_PREVIEW or DOWNLOADED_FILE).')
+        args '--spring.profiles.active=mock', '--server.address=127.0.0.1', '--server.port=8083',
+                '--spring.datasource.url=jdbc:h2:mem:datopdemo;MODE=MySQL;DB_CLOSE_DELAY=-1',
+                '--spring.datasource.driver-class-name=org.h2.Driver', '--spring.datasource.username=sa',
+                '--spring.datasource.password=', '--spring.cache.type=simple',
+                '--spring.jpa.hibernate.ddl-auto=update', '--management.health.redis.enabled=false',
+                '--core-banking.datop.aggregate.enabled=true',
+                '--core-banking.datop.aggregate.file=' + rootProject.file(project.property('datopFile')).absolutePath,
+                '--core-banking.datop.aggregate.archive=' + rootProject.file('datop-data/archive').absolutePath,
+                '--core-banking.datop.aggregate.owner=mock-demo-user',
+                '--core-banking.datop.aggregate.source-kind=' + project.property('datopSourceKind'),
+                '--core-banking.datop.aggregate.encoding=' + (project.findProperty('datopEncoding') ?: 'UTF-8')
+    }
+}
